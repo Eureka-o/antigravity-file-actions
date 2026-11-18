@@ -1,0 +1,17 @@
+{
+  "name": "antigravity-file-actions",
+  "version": "0.3.0",
+  "private": true,
+  "description": "Windows native context menu plugin for Antigravity Desktop file pills and links.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/source.test.mjs"
+  },
+  "author": "Eureka-o",
+  "homepage": "https://github.com/Eureka-o/antigravity-file-actions",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Eureka-o/antigravity-file-actions.git"
+  },
+  "license": "MIT"
+}

@@ -1,0 +1,13 @@
+{
+  "name": "antigravity-file-actions",
+  "displayName": "文件操作菜单",
+  "description": "为 Antigravity Windows 桌面端原生文件条目提供资源管理器打开、默认应用打开、打开方式、另存为与剪贴板复制菜单。",
+  "version": "0.3.0",
+  "logo": "assets/logo.svg",
+  "author": {
+    "name": "Eureka-o",
+    "url": "https://github.com/Eureka-o"
+  },
+  "homepage": "https://github.com/Eureka-o/antigravity-file-actions",
+  "repository": "https://github.com/Eureka-o/antigravity-file-actions"
+}
