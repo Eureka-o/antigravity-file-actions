@@ -4,6 +4,16 @@
 
 Injects a host-styled glassmorphic context menu (with automatic light/dark mode) for native file pills, local `file:` links, and elements carrying local paths in **Google Antigravity Desktop (Windows)**. Supports **English and Chinese** with automatic system language detection.
 
+## 界面预览 / Preview
+
+**简体中文 · 浅色玻璃态（自动检测 `zh-CN`）**
+
+![Antigravity File Actions Chinese Light Preview](assets/preview-zh-light.png)
+
+**English · Dark Glass（自动检测 `en-US`）**
+
+![Antigravity File Actions English Dark Preview](assets/preview-en-dark.png)
+
 ## 功能与菜单项 / Features
 
 右击聊天或界面中可识别出本机绝对路径的文件/目录条目时，根据当前系统语言显示对应菜单项：
@@ -66,7 +76,9 @@ antigravity-file-actions/
 ├── README.md                        # 双语说明文档
 ├── LICENSE                          # MIT 协议
 ├── assets/
-│   └── logo.svg                     # 插件图标
+│   ├── logo.svg                     # 插件图标
+│   ├── preview-zh-light.png         # 中文浅色玻璃态预览图
+│   └── preview-en-dark.png          # 英文深色玻璃态预览图
 ├── sidecars/
 │   └── file-actions/
 │       ├── sidecar.json             # Sidecar 声明
