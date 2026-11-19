@@ -1,8 +1,8 @@
 {
   "name": "antigravity-file-actions",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
-  "description": "Windows native context menu plugin for Antigravity Desktop file pills and links.",
+  "description": "Bilingual (EN/ZH) Windows native context menu plugin for Antigravity Desktop file pills and links.",
   "type": "module",
   "scripts": {
     "test": "node --test tests/source.test.mjs"

@@ -1,6 +1,7 @@
 import { statSync } from 'node:fs';
 import { win32 } from 'node:path';
 import { spawn } from 'node:child_process';
+import { detectSystemLanguageSync, getMessages } from './i18n.mjs';
 
 export const TEXT_EXTENSIONS = new Set([
   'txt', 'md', 'markdown', 'tex', 'json', 'jsonl', 'csv', 'tsv', 'xml', 'svg',
@@ -69,7 +70,7 @@ function psSpec(script, { sta = false } = {}) {
   };
 }
 
-export function buildActionSpec(action, info) {
+export function buildActionSpec(action, info, { language } = {}) {
   if (!info?.path) return null;
   const target = info.path;
 
@@ -113,6 +114,7 @@ export function buildActionSpec(action, info) {
   if (action === 'save-as') {
     if (!info.isFile) return null;
     const source = psEscape(target);
+    const allFiles = psEscape(getMessages(language || detectSystemLanguageSync()).saveAsAllFiles);
     const script = [
       'Add-Type -AssemblyName System.Windows.Forms',
       `$source = '${source}'`,
@@ -122,7 +124,7 @@ export function buildActionSpec(action, info) {
       '$dialog = New-Object System.Windows.Forms.SaveFileDialog',
       '$dialog.InitialDirectory = [IO.Path]::GetDirectoryName($source)',
       '$dialog.FileName = [IO.Path]::GetFileName($source)',
-      "if ($ext) { $label = $ext.TrimStart('.').ToUpperInvariant(); $dialog.Filter = \"$label (*$ext)|*$ext|All files (*.*)|*.*\" } else { $dialog.Filter = 'All files (*.*)|*.*' }",
+      `if ($ext) { $label = $ext.TrimStart('.').ToUpperInvariant(); $dialog.Filter = "$label (*$ext)|*$ext|" + '${allFiles} (*.*)|*.*' } else { $dialog.Filter = '${allFiles} (*.*)|*.*' }`,
       'if ($dialog.ShowDialog($owner) -eq [System.Windows.Forms.DialogResult]::OK) { [IO.File]::Copy($source, $dialog.FileName, $true) }',
       '$owner.Dispose()',
     ].join('; ');
@@ -145,7 +147,7 @@ export function buildActionSpec(action, info) {
   return null;
 }
 
-export function runAction(action, rawPath, { spawnImpl = spawn, platform = process.platform } = {}) {
+export function runAction(action, rawPath, { spawnImpl = spawn, platform = process.platform, language } = {}) {
   const info = inspectTarget(rawPath);
   if (!info) {
     console.warn('[file-actions] ignored action with invalid or missing path');
@@ -155,7 +157,7 @@ export function runAction(action, rawPath, { spawnImpl = spawn, platform = proce
     console.warn('[file-actions] action unavailable on this platform');
     return false;
   }
-  const spec = buildActionSpec(action, info);
+  const spec = buildActionSpec(action, info, { language });
   if (!spec) {
     console.warn(`[file-actions] unsupported action or target: ${String(action).slice(0, 32)}`);
     return false;

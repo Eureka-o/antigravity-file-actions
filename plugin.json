@@ -1,8 +1,8 @@
 {
   "name": "antigravity-file-actions",
-  "displayName": "文件操作菜单",
-  "description": "为 Antigravity Windows 桌面端原生文件条目提供资源管理器打开、默认应用打开、打开方式、另存为与剪贴板复制菜单。",
-  "version": "0.3.0",
+  "displayName": "File Actions / 文件操作菜单",
+  "description": "Windows native context menu for Antigravity Desktop file items (Explorer reveal, Open With, Save As, Copy Path/Contents) with automatic EN/ZH system language detection. 为 Antigravity Windows 桌面端原生文件条目提供资源管理器打开、打开方式、另存为与剪贴板复制菜单，支持中英文双语及系统语言自动检测。",
+  "version": "0.4.0",
   "logo": "assets/logo.svg",
   "author": {
     "name": "Eureka-o",

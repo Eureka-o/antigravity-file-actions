@@ -1,4 +1,5 @@
 import { TEXT_EXTENSIONS } from './actions.mjs';
+import { MESSAGES, normalizeLanguage } from './i18n.mjs';
 
 export function extractFilePath({ attributes = [], href = '', text = '', signature = '' } = {}) {
   const cleanPath = value => {
@@ -28,7 +29,7 @@ export function extractFilePath({ attributes = [], href = '', text = '', signatu
   return cleanPath(match?.[0] || '');
 }
 
-function installFileActions(binding, extractPath, textExts) {
+function installFileActions(binding, extractPath, textExts, messages, normalizeLang, initialLang) {
   window.__agyFileActionsDispose?.();
 
   const styleId = 'agy-file-actions-style';
@@ -46,6 +47,64 @@ function installFileActions(binding, extractPath, textExts) {
   let activeElement = null;
   let lastContextTarget = null;
   let submenuTrigger = null;
+  let currentLanguage = 'en';
+
+  const resolveLanguage = () => {
+    const override = normalizeLang(window.__agyFileActionsLang);
+    if (override) return override;
+    const provided = normalizeLang(initialLang);
+    if (provided) return provided;
+    const candidates = [];
+    if (typeof navigator !== 'undefined' && navigator) {
+      if (Array.isArray(navigator.languages)) candidates.push(...navigator.languages);
+      if (navigator.language) candidates.push(navigator.language);
+    }
+    try {
+      candidates.push(Intl.DateTimeFormat().resolvedOptions().locale);
+    } catch {}
+    for (const candidate of candidates) {
+      const lang = normalizeLang(candidate);
+      if (lang) return lang;
+    }
+    return 'en';
+  };
+
+  const applyLanguage = language => {
+    currentLanguage = normalizeLang(language) === 'zh' ? 'zh' : 'en';
+    const t = messages[currentLanguage] || messages.en;
+    const htmlLang = currentLanguage === 'zh' ? 'zh-CN' : 'en';
+    if (menu) {
+      menu.lang = htmlLang;
+      menu.setAttribute('aria-label', t.menuLabel);
+      const labels = {
+        reveal: t.reveal,
+        'open-file': t.openFile,
+        'open-default': t.openDefault,
+        'open-with-menu': t.openWith,
+        'save-as': t.saveAs,
+        'copy-path': t.copyPath,
+        'copy-content': t.copyContent,
+      };
+      for (const [action, label] of Object.entries(labels)) {
+        const el = menu.querySelector(`[data-action="${action}"] .agy-action-label`);
+        if (el) el.textContent = label;
+      }
+      if (active) {
+        const contentAction = menu.querySelector('[data-action="copy-content"]');
+        if (contentAction) {
+          contentAction.title = contentAction.disabled ? t.copyContentDisabledTitle : t.copyContentEnabledTitle;
+        }
+      }
+    }
+    if (submenu) {
+      submenu.lang = htmlLang;
+      submenu.setAttribute('aria-label', t.submenuLabel);
+      const chooseEl = submenu.querySelector('[data-action="open-with"] .agy-action-label');
+      if (chooseEl) chooseEl.textContent = t.chooseApp;
+    }
+    if (toast) toast.lang = htmlLang;
+    return t;
+  };
 
   const ensureStyle = () => {
     let style = document.getElementById(styleId);
@@ -121,8 +180,8 @@ function installFileActions(binding, extractPath, textExts) {
         max-width: 284px;
       }
       #${submenuId} {
-        min-width: 188px;
-        max-width: 236px;
+        min-width: 196px;
+        max-width: 256px;
       }
       @keyframes agyFaPop {
         from { opacity: 0; transform: scale(0.97) translateY(-2px); }
@@ -276,6 +335,7 @@ function installFileActions(binding, extractPath, textExts) {
       toast.setAttribute('role', 'status');
       document.body.appendChild(toast);
     }
+    toast.lang = (currentLanguage || resolveLanguage()) === 'zh' ? 'zh-CN' : 'en';
     toast.style.colorScheme = detectColorScheme();
     toast.textContent = text;
     toast.hidden = false;
@@ -349,10 +409,12 @@ function installFileActions(binding, extractPath, textExts) {
       return;
     }
     const mappedAction = action === 'open-file' ? 'open-default' : action;
-    const payload = JSON.stringify({ action: mappedAction, path: active });
+    const lang = currentLanguage || resolveLanguage();
+    const t = messages[lang] || messages.en;
+    const payload = JSON.stringify({ action: mappedAction, path: active, language: lang });
     try { window[binding](payload); } catch {}
-    if (mappedAction === 'copy-path') showToast('已复制路径');
-    else if (mappedAction === 'copy-content') showToast('已复制文件内容');
+    if (mappedAction === 'copy-path') showToast(t.toastPathCopied);
+    else if (mappedAction === 'copy-content') showToast(t.toastContentCopied);
     hideMenu();
   };
 
@@ -417,20 +479,19 @@ function installFileActions(binding, extractPath, textExts) {
     menu.id = menuId;
     menu.hidden = true;
     menu.setAttribute('role', 'menu');
-    menu.setAttribute('aria-label', '文件操作');
     menu.innerHTML = `
       <div class="agy-fa-head" role="none">
         <span class="agy-fa-head-name"></span>
         <span class="agy-fa-head-ext" hidden></span>
       </div>
-      <button type="button" role="menuitem" data-action="reveal"><span class="agy-action-icon">${icon('reveal')}</span><span class="agy-action-label">在资源管理器中打开</span></button>
-      <button type="button" role="menuitem" data-action="open-file"><span class="agy-action-icon">${icon('open')}</span><span class="agy-action-label">在侧边栏中打开</span></button>
-      <button type="button" role="menuitem" data-action="open-default"><span class="agy-action-icon">${icon('default')}</span><span class="agy-action-label">在默认应用中打开</span></button>
-      <button type="button" role="menuitem" data-action="open-with-menu" aria-haspopup="menu" aria-expanded="false"><span class="agy-action-icon">${icon('with')}</span><span class="agy-action-label">打开方式</span><span class="agy-action-chevron" aria-hidden="true">›</span></button>
+      <button type="button" role="menuitem" data-action="reveal"><span class="agy-action-icon">${icon('reveal')}</span><span class="agy-action-label"></span></button>
+      <button type="button" role="menuitem" data-action="open-file"><span class="agy-action-icon">${icon('open')}</span><span class="agy-action-label"></span></button>
+      <button type="button" role="menuitem" data-action="open-default"><span class="agy-action-icon">${icon('default')}</span><span class="agy-action-label"></span></button>
+      <button type="button" role="menuitem" data-action="open-with-menu" aria-haspopup="menu" aria-expanded="false"><span class="agy-action-icon">${icon('with')}</span><span class="agy-action-label"></span><span class="agy-action-chevron" aria-hidden="true">›</span></button>
       <div role="separator"></div>
-      <button type="button" role="menuitem" data-action="save-as"><span class="agy-action-icon">${icon('save')}</span><span class="agy-action-label">另存为…</span></button>
-      <button type="button" role="menuitem" data-action="copy-path"><span class="agy-action-icon">${icon('path')}</span><span class="agy-action-label">复制路径</span></button>
-      <button type="button" role="menuitem" data-action="copy-content"><span class="agy-action-icon">${icon('content')}</span><span class="agy-action-label">复制文件内容</span></button>
+      <button type="button" role="menuitem" data-action="save-as"><span class="agy-action-icon">${icon('save')}</span><span class="agy-action-label"></span></button>
+      <button type="button" role="menuitem" data-action="copy-path"><span class="agy-action-icon">${icon('path')}</span><span class="agy-action-label"></span></button>
+      <button type="button" role="menuitem" data-action="copy-content"><span class="agy-action-icon">${icon('content')}</span><span class="agy-action-label"></span></button>
     `;
 
     // Append submenu directly to document.body so menu's backdrop-filter never
@@ -439,10 +500,11 @@ function installFileActions(binding, extractPath, textExts) {
     submenu.id = submenuId;
     submenu.hidden = true;
     submenu.setAttribute('role', 'menu');
-    submenu.setAttribute('aria-label', '打开方式');
     submenu.innerHTML = `
-      <button type="button" role="menuitem" data-action="open-with"><span class="agy-action-icon">${icon('choose')}</span><span class="agy-action-label">选择其他应用…</span></button>
+      <button type="button" role="menuitem" data-action="open-with"><span class="agy-action-icon">${icon('choose')}</span><span class="agy-action-label"></span></button>
     `;
+
+    applyLanguage(resolveLanguage());
 
     bindMenuButtons(menu);
     bindMenuButtons(submenu);
@@ -510,6 +572,7 @@ function installFileActions(binding, extractPath, textExts) {
     submenuTrigger = target.querySelector('[data-action="open-with-menu"]');
     active = path;
 
+    const t = applyLanguage(resolveLanguage());
     const scheme = detectColorScheme();
     target.style.colorScheme = scheme;
 
@@ -530,8 +593,8 @@ function installFileActions(binding, extractPath, textExts) {
     if (contentAction) {
       contentAction.disabled = !isTextPath(path);
       contentAction.title = contentAction.disabled
-        ? '仅支持文本文件，PDF、PPTX、DOCX 或文件夹无法复制为文本'
-        : '复制文本内容（不超过 1 MiB）';
+        ? t.copyContentDisabledTitle
+        : t.copyContentEnabledTitle;
     }
 
     const targetEl = event.target instanceof Element ? event.target : event.target?.parentElement ?? null;
@@ -564,10 +627,14 @@ function installFileActions(binding, extractPath, textExts) {
   const onKeyDown = event => {
     if (event.key === 'Escape' && menu && !menu.hidden) hideMenu(true);
   };
+  const onLanguageChange = () => {
+    applyLanguage(resolveLanguage());
+  };
 
   document.addEventListener('contextmenu', onContextMenu, true);
   document.addEventListener('pointerdown', onPointerDown, true);
   document.addEventListener('keydown', onKeyDown, true);
+  window.addEventListener?.('languagechange', onLanguageChange);
 
   window.__agyFileActionsDispose = () => {
     cancelSubmenuClose();
@@ -575,6 +642,7 @@ function installFileActions(binding, extractPath, textExts) {
     document.removeEventListener('contextmenu', onContextMenu, true);
     document.removeEventListener('pointerdown', onPointerDown, true);
     document.removeEventListener('keydown', onKeyDown, true);
+    window.removeEventListener?.('languagechange', onLanguageChange);
     menu?.remove();
     submenu?.remove();
     toast?.remove();
@@ -589,6 +657,6 @@ function installFileActions(binding, extractPath, textExts) {
   };
 }
 
-export function makeRendererSource(binding) {
-  return `(${installFileActions.toString()})(${JSON.stringify(binding)},(${extractFilePath.toString()}),${JSON.stringify([...TEXT_EXTENSIONS])});`;
+export function makeRendererSource(binding, { language = '' } = {}) {
+  return `(${installFileActions.toString()})(${JSON.stringify(binding)},(${extractFilePath.toString()}),${JSON.stringify([...TEXT_EXTENSIONS])},${JSON.stringify(MESSAGES)},(${normalizeLanguage.toString()}),${JSON.stringify(language)});`;
 }

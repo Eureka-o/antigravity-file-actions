@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { makeRendererSource } from './source.mjs';
 import { runAction } from './actions.mjs';
+import { detectSystemLanguage } from './i18n.mjs';
 
 const BINDING = 'agyFileActionsV1';
 const LOOPBACK = new Set(['127.0.0.1', 'localhost', '[::1]']);
@@ -92,12 +93,13 @@ class CdpConnection {
 }
 
 async function attach(target) {
+  const systemLanguage = await detectSystemLanguage();
   const connection = new CdpConnection(target.webSocketDebuggerUrl, message => {
     if (message.method !== 'Runtime.bindingCalled' || message.params?.name !== BINDING
       || typeof message.params?.payload !== 'string' || message.params.payload.length > 4096) return;
     try {
       const input = JSON.parse(message.params.payload);
-      runAction(input.action, input.path);
+      runAction(input.action, input.path, { language: input.language || systemLanguage });
     } catch (error) { console.error(`[file-actions] action payload failed: ${error.name}`); }
   });
   try {
@@ -105,7 +107,7 @@ async function attach(target) {
     await connection.command('Page.enable');
     await connection.command('Runtime.enable');
     await connection.command('Runtime.addBinding', { name: BINDING });
-    const source = makeRendererSource(BINDING);
+    const source = makeRendererSource(BINDING, { language: systemLanguage });
     const script = await connection.command('Page.addScriptToEvaluateOnNewDocument', { source });
     connection.scriptId = script.identifier;
     connection.source = source;

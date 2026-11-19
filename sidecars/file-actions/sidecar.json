@@ -2,7 +2,7 @@
   "command": "node",
   "args": ["main.mjs"],
   "restart_policy": "always",
-  "display_name": "文件操作菜单",
-  "description": "为 Antigravity 原生文件条目提供资源管理器定位、默认应用打开、打开方式、另存为与剪贴板复制操作。",
+  "display_name": "File Actions / 文件操作菜单",
+  "description": "Bilingual (EN/ZH) native context menu for Antigravity file items with automatic system language detection. 为 Antigravity 原生文件条目提供中英双语右键操作菜单并自动检测系统语言。",
   "has_web_ui": false
 }
